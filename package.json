@@ -11,7 +11,10 @@
   "description": "Electronic Data Interchange - Interlogic B.V.",
   "main": "index.js",
   "dependencies": {
-    "undici-types": "^5.26.5"
+    "@types/uuid": "^9.0.7",
+    "csv-parse": "^5.5.2",
+    "undici-types": "^5.26.5",
+    "uuid": "^9.0.1"
   },
   "scripts": {
     "dev": "npx nodemon",
