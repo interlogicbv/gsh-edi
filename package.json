@@ -1,0 +1,31 @@
+{
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "nodemon": "^3.0.1",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.2"
+  },
+  "name": "edi",
+  "version": "1.0.0",
+  "description": "Electronic Data Interchange - Interlogic B.V.",
+  "main": "index.js",
+  "dependencies": {
+    "undici-types": "^5.26.5"
+  },
+  "scripts": {
+    "dev": "npx nodemon",
+    "start": "npm run build && node build/index.js",
+    "build": "rimraf ./build && tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/interlogicbv/edi.git"
+  },
+  "author": "R. van Rees",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/interlogicbv/edi/issues"
+  },
+  "homepage": "https://github.com/interlogicbv/edi#readme"
+}
