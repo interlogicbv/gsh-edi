@@ -5,11 +5,16 @@ import { parse } from "csv-parse";
 var generatedReference = uuid();
 var index: number = 0;
 const keys: any[] = [];
-const values: any[] = [];
-var results: any[] = [];
+const results: any[] = [];
 
 const log = (text: string): void => {
   console.log(`[${new Date().toLocaleString()}] ${text}`);
+};
+
+const generateOutput = () => {
+  results.map((v: string) => {
+    console.log(v);
+  });
 };
 
 const start = () => {
@@ -21,18 +26,26 @@ const start = () => {
         .pipe(
           parse({
             delimiter: ";",
+            relax_quotes: true,
+            escape: "\\",
+            ltrim: true,
+            rtrim: true,
           })
         )
         .on("data", (r: string[]) => {
           if (index === 0) {
-            keys.push(r);
+            r.map((v: string) => keys.push(v));
           } else {
-            results.push(Object.assign({}, r));
+            var temp: any = {};
+            r.map((v: string, i: any) => {
+              temp = { ...temp, [keys[i]]: v };
+            });
+            results.push(temp);
           }
           index++;
         })
         .on("end", () => {
-          console.log(results);
+          generateOutput();
         });
     }
   });
