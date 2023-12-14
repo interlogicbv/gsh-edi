@@ -7,7 +7,7 @@
     "typescript": "^5.3.2"
   },
   "name": "edi",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Electronic Data Interchange - Interlogic B.V.",
   "main": "index.js",
   "dependencies": {
@@ -20,6 +20,7 @@
   "scripts": {
     "dev": "npx nodemon",
     "start": "npm run build && node build/index.js",
+    "gsh": "npm run build && node build/gsh.js",
     "build": "rimraf ./build && tsc"
   },
   "repository": {
