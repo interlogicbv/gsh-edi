@@ -20,7 +20,6 @@ const start = () => {
         log(`Running with reference: ${generatedReference}`);
         log(`Found input file: ${file}`);
         fs.createReadStream("./src/input/" + file)
-          .setEncoding("utf8")
           .pipe(
             parse({
               delimiter: ";",
