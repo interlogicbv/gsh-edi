@@ -45,6 +45,7 @@ const start = () => {
             index++;
           })
           .on("end", () => {
+            console.log(keys);
             generateOutput(
               file,
               results.filter(
