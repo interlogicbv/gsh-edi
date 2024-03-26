@@ -27,6 +27,7 @@ const start = () => {
               escape: "\\",
               ltrim: true,
               rtrim: true,
+              bom: true,
             })
           )
           .on("data", (r: string[]) => {
