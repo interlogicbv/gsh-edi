@@ -21,7 +21,7 @@
     "dev": "npx nodemon",
     "start": "npm run build && node build/index.js",
     "gsh": "npm run build && node build/gsh.js",
-    "build": "rm -rf ./build && tsc"
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
