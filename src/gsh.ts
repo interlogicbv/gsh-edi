@@ -52,7 +52,8 @@ const start = () => {
                   results.findIndex(
                     (item) =>
                       item.Lieferschein === obj.Lieferschein &&
-                      item.Inhalt === obj.Inhalt
+                      item.Inhalt === obj.Inhalt &&
+                      item.Gewicht === obj.Gewicht
                   ) === index
               )
             );
