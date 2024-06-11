@@ -276,30 +276,6 @@ const createXML = (file: string, input: any[], cargos: any[]) => {
                         bool3: {
                           "#text": i.VP === "FP", // Pallet change
                         },
-                        goodslines: {
-                          goodsline: c.goods.map((g: any) => ({
-                            unitamount: {
-                              "#text": g.Paletten,
-                            },
-                            weight: {
-                              "#text": g.Gewicht,
-                            },
-                            unit_id: {
-                              "@matchmode": 3,
-                              "#text":
-                                g.VP === "FP" ? "Euro" : "Eenmalige pallet",
-                            },
-                            loadingmeter: {
-                              "#text": g.loadingmeter,
-                            },
-                            productdescription: {
-                              "#text": g.Inhalt,
-                            },
-                            barcode: {
-                              "#text": g.Packzettelnummer,
-                            },
-                          })),
-                        },
                       }
                     : null
                 ),
