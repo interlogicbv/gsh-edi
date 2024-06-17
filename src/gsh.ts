@@ -274,7 +274,7 @@ const createXML = (file: string, input: any[], cargos: any[]) => {
                           "#text": false,
                         },
                         bool3: {
-                          "#text": i.VP === "FP", // Pallet change
+                          "#text": true, // Pallet change
                         },
                       }
                     : null
