@@ -8,7 +8,7 @@
   },
   "name": "edi",
   "version": "1.1.0",
-  "description": "Electronic Data Interchange - Interlogic B.V.",
+  "description": "Grafschafter Splitt Handel GmbH - Electronic Data Interchange - Interlogic B.V.",
   "main": "index.js",
   "dependencies": {
     "@types/uuid": "^9.0.7",
@@ -20,12 +20,11 @@
   "scripts": {
     "dev": "npx nodemon",
     "start": "npm run build && node build/index.js",
-    "gsh": "npm run build && node build/gsh.js",
     "build": "tsc"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/interlogicbv/edi.git"
+    "url": "git+https://github.com/interlogicbv/gsh-edi.git"
   },
   "author": "R. van Rees",
   "license": "ISC",
