@@ -7,7 +7,7 @@
     "typescript": "^5.3.2"
   },
   "name": "edi",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "description": "Grafschafter Splitt Handel GmbH - Electronic Data Interchange - Interlogic B.V.",
   "main": "index.js",
   "dependencies": {
@@ -29,7 +29,7 @@
   "author": "R. van Rees",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/interlogicbv/edi/issues"
+    "url": "https://github.com/interlogicbv/gsh-edi/issues"
   },
-  "homepage": "https://github.com/interlogicbv/edi#readme"
+  "homepage": "https://github.com/interlogicbv/gsh-edi#readme"
 }
