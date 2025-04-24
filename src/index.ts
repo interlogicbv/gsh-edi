@@ -16,6 +16,8 @@ const start = () => {
   const input = fs.readdirSync("./src/input");
   if (input.length > 0) {
     input.map((file: any) => {
+      keys = [];
+      results = [];
       if (file) {
         log(`Running with reference: ${generatedReference}`);
         log(`Found input file: ${file}`);
