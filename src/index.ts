@@ -3,7 +3,7 @@ import { v4 as uuid } from "uuid";
 import { parse } from "csv-parse";
 import { create } from "xmlbuilder2";
 
-var generatedReference = uuid();
+var generatedReference = "";
 var index: number = 0;
 var keys: any[] = [];
 var results: any[] = [];
@@ -16,6 +16,7 @@ const start = () => {
   const input = fs.readdirSync("./src/input");
   if (input.length > 0) {
     input.map((file: any) => {
+      generatedReference = uuid();
       keys = [];
       results = [];
       if (file) {
