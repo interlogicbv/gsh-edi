@@ -240,7 +240,7 @@ const createXML = (
 
   fs.writeFileSync(`./src/output/${filename}`, xml);
   log(`Successfully created XML file: ${filename}`);
-  //fs.unlinkSync(`./src/input/${file}`);
+  fs.unlinkSync(`./src/input/${file}`);
 };
 
 // Helpers
