@@ -1,321 +1,259 @@
+// imports
 import * as fs from "fs";
 import { v4 as uuid } from "uuid";
 import { parse } from "csv-parse";
 import { create } from "xmlbuilder2";
 
-var generatedReference = "";
-var index: number = 0;
-var keys: any[] = [];
-var results: any[] = [];
+// Types
+type InputRow = {
+  Lieferschein: string;
+  Inhalt: string;
+  Paletten: string;
+  Gewicht: string;
+  Lieferhinweis: string;
+  VP: string;
+  Packzettelnummer: string;
+  Bestellnummer: string;
+  Abholtermin: string;
+  Empfaenger: string;
+  Empfaenger_Strasse: string;
+  Empfaenger_PLZ: string;
+  Empfaenger_Ort: string;
+  Bemerkung: string;
+  Telefon: string;
+  EMail?: string;
+  Liefertermin: string;
+  LieferzeitVon: string;
+  LieferzeitBis: string;
+  Entladehilfe: string;
+};
 
+type GoodsLine = {
+  Paletten: number;
+  loadingmeter: number;
+  Inhalt: string;
+  Gewicht: number;
+  Lieferhinweis: string;
+  VP: string;
+  Packzettelnummer: string;
+};
+
+type Cargo = {
+  Lieferschein: string;
+  goods: GoodsLine[];
+};
+
+// Utils
 const log = (text: string): void => {
   console.log(`[${new Date().toLocaleString()}] ${text}`);
 };
 
+// Main
 const start = () => {
-  const input = fs.readdirSync("./src/input");
-  if (input.length > 0) {
-    input.map((file: any) => {
-      generatedReference = uuid();
-      keys = [];
-      results = [];
-      if (file) {
-        log(`Running with reference: ${generatedReference}`);
-        log(`Found input file: ${file}`);
-        fs.createReadStream("./src/input/" + file)
-          .pipe(
-            parse({
-              delimiter: ";",
-              relax_quotes: true,
-              escape: "\\",
-              ltrim: true,
-              rtrim: true,
-              bom: true,
-            })
-          )
-          .on("data", (r: string[]) => {
-            if (index === 0) {
-              // Keys at first row
-              r.map((v: string) => keys.push(v));
-            } else {
-              var temp: any = {};
-              r.map((v: string, i: any) => {
-                temp = { ...temp, [keys[i]]: v };
-              });
-              results.push(temp);
-            }
-            index++;
-          })
-          .on("end", () => {
-            generateOutput(
-              file,
-              results.filter(
-                (obj, index) =>
-                  results.findIndex(
-                    (item) =>
-                      item.Lieferschein === obj.Lieferschein &&
-                      item.Inhalt === obj.Inhalt
-                  ) === index
-              )
-            );
-          });
-      }
-    });
-  } else {
+  const inputFiles = fs.readdirSync("./src/input");
+  if (inputFiles.length === 0) {
     log(`No input file found!`);
+    return;
   }
+
+  inputFiles.forEach((file) => {
+    const reference = uuid();
+    log(`Running with reference: ${reference}`);
+    log(`Found input file: ${file}`);
+
+    const keys: string[] = [];
+    const rows: InputRow[] = [];
+
+    fs.createReadStream("./src/input/" + file)
+      .pipe(
+        parse({
+          delimiter: ";",
+          relax_quotes: true,
+          escape: "\\",
+          ltrim: true,
+          rtrim: true,
+          bom: true,
+        })
+      )
+      .on("data", (row: string[]) => {
+        if (keys.length === 0) {
+          row.forEach((v) => keys.push(v));
+        } else {
+          const obj: any = {};
+          row.forEach((v, i) => {
+            obj[keys[i]] = v;
+          });
+          rows.push(obj as InputRow);
+        }
+      })
+      .on("end", () => {
+        const uniqueRows = dedupeRows(rows);
+        const cargos = groupCargos(uniqueRows);
+        createXML(file, reference, uniqueRows, cargos);
+      });
+  });
 };
 
-const generateOutput = (file: string, input: any[]) => {
-  var cargos: any[] = [];
-  input.map((i: any) => {
-    if (
-      cargos.find((c: any) => c.Lieferschein === i.Lieferschein) === undefined
-    ) {
-      cargos.push({
-        Lieferschein: i.Lieferschein,
-        goods: [
-          {
-            Paletten: parseInt(i.Paletten === "0" ? "1" : i.Paletten),
-            loadingmeter: parseInt(i.Paletten) * 0.6,
-            Inhalt: i.Inhalt,
-            Gewicht: parseInt(i.Gewicht),
-            Lieferhinweis: i.Lieferhinweis,
-            VP: i.VP,
-            Packzettelnummer: i.Packzettelnummer,
-          },
-        ],
-      });
+// Remove duplicates (Lieferschein + Inhalt)
+const dedupeRows = (rows: InputRow[]): InputRow[] => {
+  return rows.filter(
+    (obj, index, self) =>
+      self.findIndex(
+        (item) =>
+          item.Lieferschein === obj.Lieferschein && item.Inhalt === obj.Inhalt
+      ) === index
+  );
+};
+
+// Group goods by Lieferschein
+const groupCargos = (rows: InputRow[]): Cargo[] => {
+  const cargos: Cargo[] = [];
+
+  rows.forEach((row) => {
+    const pallets = parseInt(row.Paletten) === 0 ? 1 : parseInt(row.Paletten);
+    const good: GoodsLine = {
+      Paletten: pallets,
+      loadingmeter: pallets * 0.6,
+      Inhalt: row.Inhalt,
+      Gewicht: parseInt(row.Gewicht),
+      Lieferhinweis: row.Lieferhinweis,
+      VP: row.VP,
+      Packzettelnummer: row.Packzettelnummer,
+    };
+
+    const existingCargo = cargos.find(
+      (c) => c.Lieferschein === row.Lieferschein
+    );
+    if (existingCargo) {
+      existingCargo.goods.push(good);
     } else {
-      cargos.map((c: any) => {
-        if (c.Lieferschein === i.Lieferschein) {
-          c.goods.push({
-            Paletten: parseInt(i.Paletten === "0" ? "1" : i.Paletten),
-            loadingmeter: parseInt(i.Paletten) * 0.6,
-            Inhalt: i.Inhalt,
-            Gewicht: parseInt(i.Gewicht),
-            Lieferhinweis: i.Lieferhinweis,
-            VP: i.VP,
-            Packzettelnummer: i.Packzettelnummer,
-          });
-        }
+      cargos.push({
+        Lieferschein: row.Lieferschein,
+        goods: [good],
       });
     }
   });
-  createXML(
-    file,
-    input.filter(
-      (obj, index) =>
-        input.findIndex((item) => item.Lieferschein === obj.Lieferschein) ===
-        index
-    ),
-    cargos
-  );
+
+  return cargos;
 };
 
-const createXML = (file: string, input: any[], cargos: any[]) => {
-  var filename = "generated_" + new Date().getTime() + ".xml";
-  fs.writeFileSync(
-    "./src/output/" + filename,
-    create({
-      import: {
-        ediprovider_id: {
-          "@matchmode": 0,
-          "#text": 3,
-        },
-        company_id: {
-          "@matchmode": 0,
-          "#text": 1,
-        },
-        transportbookings: {
-          transportbooking: {
-            edireference: {
-              "#text": generatedReference,
-            },
-            reference: {
-              "#text": generatedReference,
-            },
-            customer_id: {
-              "@matchmode": 8,
-              "#text": 1555, // GSH
-            },
-            shipments: input.map((i: any) => ({
-              shipment: {
-                edireference: {
-                  "#text": generatedReference,
-                },
-                reference: {
-                  "#text": i.Lieferschein,
-                },
-                plangroup_id: {
-                  "@matchmode": 0,
-                  "#text": 1,
-                },
-                planningnote: {
-                  "#text":
-                    i.Lieferhinweis != ""
-                      ? i.Lieferhinweis.replace(/  +/g, " ") +
-                        " Bestelnummer: " +
-                        i.Bestellnummer
-                      : null,
-                },
+// Create XML
+const createXML = (
+  file: string,
+  reference: string,
+  rows: InputRow[],
+  cargos: Cargo[]
+) => {
+  const filename = "generated_" + Date.now() + ".xml";
+
+  const xml = create({
+    import: {
+      ediprovider_id: { "@matchmode": 0, "#text": 3 },
+      company_id: { "@matchmode": 0, "#text": 1 },
+      transportbookings: {
+        transportbooking: {
+          edireference: { "#text": reference },
+          reference: { "#text": reference },
+          customer_id: { "@matchmode": 8, "#text": 1555 },
+          shipments: {
+            shipment: cargos.map((cargo) => {
+              const row = rows.find(
+                (r) => r.Lieferschein === cargo.Lieferschein
+              )!;
+              const totalPaletten = cargo.goods.reduce(
+                (acc, cur) => acc + cur.Paletten,
+                0
+              );
+              const totalGewicht = cargo.goods.reduce(
+                (acc, cur) => acc + cur.Gewicht,
+                0
+              );
+              const totalLoadingmeter = (totalPaletten * 0.6).toFixed(1);
+
+              return {
+                edireference: { "#text": reference },
+                reference: { "#text": cargo.Lieferschein },
+                plangroup_id: { "@matchmode": 0, "#text": 1 },
+                planningnote: row.Lieferhinweis
+                  ? `${row.Lieferhinweis.replace(/  +/g, " ")} Bestelnummer: ${
+                      row.Bestellnummer
+                    }`
+                  : null,
                 pickupaddress: {
-                  address_id: {
-                    "@matchmode": 0,
-                    "#text": 1495,
-                  },
-                  reference: {
-                    "#text": i.Lieferschein,
-                  },
-                  date: {
-                    "#text":
-                      i.Abholtermin != ""
-                        ? i.Abholtermin.split(".")[2] +
-                          "-" +
-                          i.Abholtermin.split(".")[1] +
-                          "-" +
-                          i.Abholtermin.split(".")[0]
-                        : null,
-                  },
+                  address_id: { "@matchmode": 0, "#text": 1495 },
+                  reference: { "#text": cargo.Lieferschein },
+                  date: row.Abholtermin ? formatDate(row.Abholtermin) : null,
                 },
                 deliveryaddress: {
-                  address_id: {
-                    "@matchmode": 5,
-                    "#text": i.Empfaenger,
-                  },
-                  date: {
-                    "#text":
-                      i.Liefertermin != ""
-                        ? i.Liefertermin.split(".")[2] +
-                          "-" +
-                          i.Liefertermin.split(".")[1] +
-                          "-" +
-                          i.Liefertermin.split(".")[0]
-                        : null,
-                  },
-                  time: {
-                    "#text":
-                      i.LieferzeitVon != ""
-                        ? i.LieferzeitVon.slice(0, 2) +
-                          ":" +
-                          i.LieferzeitVon.slice(2, 4)
-                        : null,
-                  },
-                  timetill: {
-                    "#text":
-                      i.LieferzeitBis != ""
-                        ? i.LieferzeitBis.slice(0, 2) +
-                          ":" +
-                          i.LieferzeitBis.slice(2, 4)
-                        : null,
-                  },
-                  name: {
-                    "#text": i.Empfaenger,
-                  },
-                  address1: {
-                    "#text": i.Empfaenger_Strasse,
-                  },
-                  zipcode: {
-                    "#text": i.Empfaenger_PLZ,
-                  },
-                  country_id: {
-                    "@matchmode": 0,
-                    "#text": 17,
-                  },
-                  city_id: {
-                    "@matchmode": 4,
-                    "#text": i.Empfaenger_Ort,
-                  },
-                  driverinfo: {
-                    "#text": i.Bemerkung + " - " + i.Telefon,
-                  },
-                  remarks: {
-                    "#text":
-                      i.Lieferhinweis != ""
-                        ? i.Lieferhinweis.replace(/  +/g, " ") +
-                          " Bestelnummer: " +
-                          i.Bestellnummer
-                        : null,
-                  },
-                  phone: {
-                    "#text": i.Telefon,
-                  },
-                  email: {
-                    "#text": i.EMail || null,
+                  address_id: { "@matchmode": 5, "#text": row.Empfaenger },
+                  date: row.Liefertermin ? formatDate(row.Liefertermin) : null,
+                  time: row.LieferzeitVon
+                    ? formatTime(row.LieferzeitVon)
+                    : null,
+                  timetill: row.LieferzeitBis
+                    ? formatTime(row.LieferzeitBis)
+                    : null,
+                  name: { "#text": row.Empfaenger },
+                  address1: { "#text": row.Empfaenger_Strasse },
+                  zipcode: { "#text": row.Empfaenger_PLZ },
+                  country_id: { "@matchmode": 0, "#text": 17 },
+                  city_id: { "@matchmode": 4, "#text": row.Empfaenger_Ort },
+                  driverinfo: `${row.Bemerkung} - ${row.Telefon}`,
+                  remarks: row.Lieferhinweis
+                    ? `${row.Lieferhinweis.replace(
+                        /  +/g,
+                        " "
+                      )} Bestelnummer: ${row.Bestellnummer}`
+                    : null,
+                  phone: row.Telefon,
+                  email: row.EMail || null,
+                },
+                cargo: {
+                  unit_id: { "@matchmode": 3, "#text": "COL" },
+                  unitamount: totalPaletten,
+                  loadingmeter: totalLoadingmeter,
+                  weight: totalGewicht,
+                  bool1: row.Entladehilfe === "1",
+                  bool2: false,
+                  bool3: cargo.goods.some((g) => g.VP === "FP"), // any FP
+                  goodslines: {
+                    goodsline: cargo.goods.map((g) => ({
+                      unitamount: g.Paletten,
+                      weight: g.Gewicht,
+                      unit_id: {
+                        "@matchmode": 3,
+                        "#text": g.VP === "FP" ? "Euro" : "Eenmalige pallet",
+                      },
+                      loadingmeter: g.loadingmeter,
+                      productdescription: g.Inhalt,
+                      barcode: g.Packzettelnummer,
+                    })),
                   },
                 },
-                cargo: cargos.map((c: any) =>
-                  c.Lieferschein === i.Lieferschein
-                    ? {
-                        unit_id: {
-                          "@matchmode": 3,
-                          "#text": "COL",
-                        },
-                        unitamount: {
-                          "#text": c.goods.reduce(
-                            (acc: any, cur: any) => (acc += cur.Paletten),
-                            0
-                          ),
-                        },
-                        loadingmeter: {
-                          "#text": (
-                            c.goods.reduce(
-                              (acc: any, cur: any) => (acc += cur.Paletten),
-                              0
-                            ) * 0.6
-                          ).toFixed(1),
-                        },
-                        weight: {
-                          "#text": c.goods.reduce(
-                            (acc: any, cur: any) => (acc += cur.Gewicht),
-                            0
-                          ),
-                        },
-                        bool1: {
-                          "#text": i.Entladehilfe === "1" ? true : false, // Kooiaap
-                        },
-                        bool2: {
-                          "#text": false,
-                        },
-                        bool3: {
-                          "#text": i.VP === "FP", // Pallet change
-                        },
-                        goodslines: {
-                          goodsline: c.goods.map((g: any) => ({
-                            unitamount: {
-                              "#text": g.Paletten,
-                            },
-                            weight: {
-                              "#text": g.Gewicht,
-                            },
-                            unit_id: {
-                              "@matchmode": 3,
-                              "#text":
-                                g.VP === "FP" ? "Euro" : "Eenmalige pallet",
-                            },
-                            loadingmeter: {
-                              "#text": g.loadingmeter,
-                            },
-                            productdescription: {
-                              "#text": g.Inhalt,
-                            },
-                            barcode: {
-                              "#text": g.Packzettelnummer,
-                            },
-                          })),
-                        },
-                      }
-                    : null
-                ),
-              },
-            })),
+              };
+            }),
           },
         },
       },
-    }).end({ prettyPrint: true })
-  );
+    },
+  }).end({ prettyPrint: true });
+
+  fs.writeFileSync(`./src/output/${filename}`, xml);
   log(`Successfully created XML file: ${filename}`);
-  fs.unlinkSync("./src/input/" + file);
+  //fs.unlinkSync(`./src/input/${file}`);
 };
 
+// Helpers
+const formatDate = (dateStr: string): string | null => {
+  const parts = dateStr.split(".");
+  if (parts.length !== 3) return null;
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+};
+
+const formatTime = (timeStr: string): string | null => {
+  if (timeStr.length !== 4) return null;
+  return `${timeStr.slice(0, 2)}:${timeStr.slice(2, 4)}`;
+};
+
+// Run it
 start();
