@@ -100,7 +100,9 @@ const dedupeRows = (rows: InputRow[]): InputRow[] => {
     (obj, index, self) =>
       self.findIndex(
         (item) =>
-          item.Lieferschein === obj.Lieferschein && item.Inhalt === obj.Inhalt
+          item.Lieferschein === obj.Lieferschein &&
+          item.Inhalt === obj.Inhalt &&
+          item.Gewicht === obj.Gewicht
       ) === index
   );
 };
